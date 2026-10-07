@@ -2,39 +2,40 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { KeyRound, Plus, Copy, Check, Trash2, ShieldCheck, Terminal, Play, AlertCircle } from 'lucide-react';
+import { Plus, Copy, Check, Trash2, ShieldCheck, Play, AlertCircle } from 'lucide-react';
 import Card, { CardHeader } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { ApiKey } from '@/types';
+
+const INITIAL_KEYS: ApiKey[] = [
+  {
+    id: 'key_1',
+    name: 'Production Ingestion Service',
+    key: 'ms_live_49f8a20bc9e1458890cd1a97f26',
+    lastUsedAt: new Date('2026-10-07T18:55:00Z'),
+    expiresAt: new Date('2027-01-01'),
+    organizationId: 'org_1',
+    createdAt: new Date('2026-01-15'),
+  },
+  {
+    id: 'key_2',
+    name: 'Staging CI/CD Pipeline',
+    key: 'ms_test_901cbf540a82771de99c3321ba',
+    lastUsedAt: new Date('2026-10-07T18:25:00Z'),
+    expiresAt: new Date('2026-12-31'),
+    organizationId: 'org_1',
+    createdAt: new Date('2026-02-01'),
+  },
+];
 
 export default function ApiKeysPage() {
   const params = useParams();
   const orgSlug = params.orgSlug as string;
   const { role } = useWorkspace();
 
-  const [keys, setKeys] = useState<ApiKey[]>([
-    {
-      id: 'key_1',
-      name: 'Production Ingestion Service',
-      key: 'ms_live_49f8a20bc9e1458890cd1a97f26',
-      lastUsedAt: new Date(Date.now() - 4 * 60 * 1000),
-      expiresAt: new Date('2027-01-01'),
-      organizationId: 'org_1',
-      createdAt: new Date('2026-01-15'),
-    },
-    {
-      id: 'key_2',
-      name: 'Staging CI/CD Pipeline',
-      key: 'ms_test_901cbf540a82771de99c3321ba',
-      lastUsedAt: new Date(Date.now() - 36 * 60 * 1000),
-      expiresAt: new Date('2026-12-31'),
-      organizationId: 'org_1',
-      createdAt: new Date('2026-02-01'),
-    },
-  ]);
+  const [keys, setKeys] = useState<ApiKey[]>(INITIAL_KEYS);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [keyName, setKeyName] = useState('');
@@ -42,7 +43,7 @@ export default function ApiKeysPage() {
   const [copiedKey, setCopiedKey] = useState(false);
 
   // Live API Tester State
-  const [testResponse, setTestResponse] = useState<any>(null);
+  const [testResponse, setTestResponse] = useState<Record<string, unknown> | null>(null);
   const [isTesting, setIsTesting] = useState(false);
 
   const canManageKeys = role === 'OWNER' || role === 'ADMIN';
@@ -102,9 +103,9 @@ export default function ApiKeysPage() {
         },
         body: data,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setTestResponse({
-        error: err.message,
+        error: err instanceof Error ? err.message : String(err),
       });
     } finally {
       setIsTesting(false);
