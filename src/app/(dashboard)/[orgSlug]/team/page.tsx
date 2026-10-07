@@ -1,0 +1,231 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { Users, UserPlus, ShieldCheck, AlertCircle } from 'lucide-react';
+import Card, { CardHeader } from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import InviteMemberModal from '@/components/team/InviteMemberModal';
+import TeamTable from '@/components/team/TeamTable';
+import { useWorkspace } from '@/context/WorkspaceContext';
+import { Member, Invitation, Role, PlanTier } from '@/types';
+import { PLANS } from '@/lib/constants';
+
+export default function TeamManagementPage() {
+  const params = useParams();
+  const orgSlug = params.orgSlug as string;
+  const { role } = useWorkspace();
+
+  const [tier, setTier] = useState<PlanTier>('TEAM');
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [members, setMembers] = useState<Member[]>([
+    {
+      id: 'mem_1',
+      role: 'OWNER',
+      organizationId: 'org_1',
+      userId: 'usr_1',
+      user: {
+        id: 'usr_1',
+        name: 'Sarah Connor',
+        email: 'sarah@skynet-defense.io',
+        emailVerified: new Date(),
+        image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+      },
+      createdAt: new Date('2026-01-01'),
+    },
+    {
+      id: 'mem_2',
+      role: 'ADMIN',
+      organizationId: 'org_1',
+      userId: 'usr_2',
+      user: {
+        id: 'usr_2',
+        name: 'Alex Rivera',
+        email: 'alex@skynet-defense.io',
+        emailVerified: new Date(),
+        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+      },
+      createdAt: new Date('2026-01-05'),
+    },
+    {
+      id: 'mem_3',
+      role: 'BILLING',
+      organizationId: 'org_1',
+      userId: 'usr_3',
+      user: {
+        id: 'usr_3',
+        name: 'Marcus Vance',
+        email: 'marcus.finance@skynet-defense.io',
+        emailVerified: new Date(),
+        image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+      },
+      createdAt: new Date('2026-01-10'),
+    },
+    {
+      id: 'mem_4',
+      role: 'MEMBER',
+      organizationId: 'org_1',
+      userId: 'usr_4',
+      user: {
+        id: 'usr_4',
+        name: 'Elena Rostova',
+        email: 'elena@skynet-defense.io',
+        emailVerified: new Date(),
+        image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      },
+      createdAt: new Date('2026-02-01'),
+    },
+  ]);
+
+  const [invitations, setInvitations] = useState<Invitation[]>([
+    {
+      id: 'inv_1',
+      email: 'devops-lead@partner.io',
+      role: 'ADMIN',
+      token: 'tok_inv_882910fa',
+      expiresAt: new Date(Date.now() + 7 * 86400 * 1000),
+      organizationId: 'org_1',
+      createdAt: new Date(),
+    },
+  ]);
+
+  useEffect(() => {
+    if (orgSlug === 'hyperflow-ai') setTier('PRO');
+    else if (orgSlug === 'devstudio') setTier('FREE');
+    else setTier('TEAM');
+  }, [orgSlug]);
+
+  const plan = PLANS[tier];
+  const maxSeats = plan.seatLimit;
+  const currentSeats = members.length;
+  const canManageTeam = role === 'OWNER' || role === 'ADMIN';
+
+  const handleInvite = async (email: string, inviteRole: Role) => {
+    const token = `tok_inv_${Math.random().toString(36).substring(2, 10)}`;
+    const newInv: Invitation = {
+      id: `inv_${Date.now()}`,
+      email,
+      role: inviteRole,
+      token,
+      expiresAt: new Date(Date.now() + 7 * 86400 * 1000),
+      organizationId: 'org_1',
+      createdAt: new Date(),
+    };
+    setInvitations((prev) => [...prev, newInv]);
+    return { token };
+  };
+
+  const handleUpdateRole = async (memberId: string, newRole: Role) => {
+    setMembers((prev) =>
+      prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m))
+    );
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    setMembers((prev) => prev.filter((m) => m.id !== memberId));
+  };
+
+  const handleRevokeInvitation = async (invId: string) => {
+    setInvitations((prev) => prev.filter((i) => i.id !== invId));
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-800/80">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-zinc-100">Team & RBAC Management</h2>
+          <p className="text-xs text-zinc-400 mt-1">
+            Control member seats, roles (OWNER, ADMIN, BILLING, MEMBER), and invitation tokens.
+          </p>
+        </div>
+
+        <div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setIsInviteModalOpen(true)}
+            disabled={!canManageTeam || currentSeats >= maxSeats}
+          >
+            <UserPlus className="w-4 h-4 mr-1.5" />
+            Invite Member
+          </Button>
+        </div>
+      </div>
+
+      {/* Seat Allocation Banner */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <span className="text-xs font-medium text-zinc-400 block mb-1">Allocated Seats</span>
+          <div className="text-2xl font-bold text-zinc-100">
+            {currentSeats}{' '}
+            <span className="text-sm font-normal text-zinc-500">
+              / {maxSeats === 9999 ? 'Unlimited' : maxSeats}
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-indigo-500 rounded-full"
+                style={{
+                  width: `${Math.min(100, (currentSeats / (maxSeats === 9999 ? 100 : maxSeats)) * 100)}%`,
+                }}
+              />
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <span className="text-xs font-medium text-zinc-400 block mb-1">Available Seats</span>
+          <div className="text-2xl font-bold text-emerald-400">
+            {maxSeats === 9999 ? 'Unlimited' : Math.max(0, maxSeats - currentSeats)}
+          </div>
+          <p className="text-xs text-zinc-400 mt-1">
+            {currentSeats >= maxSeats ? 'Plan limit reached' : 'Available on current plan'}
+          </p>
+        </Card>
+
+        <Card>
+          <span className="text-xs font-medium text-zinc-400 block mb-1">Current RBAC Mode</span>
+          <div className="text-base font-semibold text-zinc-200">
+            Simulating <span className="text-indigo-400">{role}</span>
+          </div>
+          <p className="text-xs text-zinc-400 mt-1">
+            {canManageTeam
+              ? 'Authorized to invite members & edit roles'
+              : 'Read-only access (no invite/removal rights)'}
+          </p>
+        </Card>
+      </div>
+
+      {!canManageTeam && (
+        <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-400" />
+          <span>
+            Your active role is <strong>{role}</strong>. You can view the member list, but only <strong>OWNER</strong> or <strong>ADMIN</strong> can issue invites or modify roles.
+          </span>
+        </div>
+      )}
+
+      {/* Main Table */}
+      <TeamTable
+        members={members}
+        invitations={invitations}
+        currentUserRole={role}
+        onUpdateRole={handleUpdateRole}
+        onRemoveMember={handleRemoveMember}
+        onRevokeInvitation={handleRevokeInvitation}
+      />
+
+      {/* Invite Modal */}
+      <InviteMemberModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        onInvite={handleInvite}
+        currentSeats={currentSeats}
+        maxSeats={maxSeats}
+      />
+    </div>
+  );
+}
