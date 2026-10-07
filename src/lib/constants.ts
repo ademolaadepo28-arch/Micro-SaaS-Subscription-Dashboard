@@ -17,7 +17,7 @@ export const PLANS: Record<PlanTier, PlanConfig> = {
     name: 'Pro Tier',
     monthlyPrice: 29,
     priceLabel: '$29 / mo',
-    stripePriceId: 'price_1N_pro_monthly_29',
+    stripePriceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID || 'price_1N_pro_monthly_29',
     seatLimit: 5,
     meteredApiQuota: 50000,
     storageQuotaBytes: 5 * 1024 * 1024 * 1024, // 5 GB
@@ -35,7 +35,7 @@ export const PLANS: Record<PlanTier, PlanConfig> = {
     name: 'Team Tier',
     monthlyPrice: 99,
     priceLabel: '$99 / mo',
-    stripePriceId: 'price_1N_team_monthly_99',
+    stripePriceId: process.env.NEXT_PUBLIC_STRIPE_TEAM_PRICE_ID || process.env.STRIPE_TEAM_PRICE_ID || 'price_1N_team_monthly_99',
     seatLimit: 20,
     meteredApiQuota: 500000,
     storageQuotaBytes: 50 * 1024 * 1024 * 1024, // 50 GB

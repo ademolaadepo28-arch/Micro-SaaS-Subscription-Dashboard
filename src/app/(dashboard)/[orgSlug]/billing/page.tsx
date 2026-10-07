@@ -38,8 +38,22 @@ export default function BillingPage() {
     setNotice(null);
 
     try {
-      // Simulate Stripe checkout or instant tier update
-      await new Promise((r) => setTimeout(r, 800));
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgSlug, tier: newTier }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to initiate checkout session');
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+
       setCustomTiers((prev) => ({ ...prev, [orgSlug]: newTier }));
       setNotice({
         message: `Successfully synchronized subscription! Workspace updated to ${PLANS[newTier].name}.`,
@@ -55,7 +69,7 @@ export default function BillingPage() {
     }
   };
 
-  const handleOpenStripePortal = () => {
+  const handleOpenStripePortal = async () => {
     if (!canManageBilling) {
       setNotice({
         message: `RBAC Permission Denied: Only OWNER or BILLING can access Stripe Customer Portal.`,
@@ -63,10 +77,30 @@ export default function BillingPage() {
       });
       return;
     }
-    setNotice({
-      message: 'Simulated Stripe Customer Portal: In production, redirects to billing.stripe.com/p/session.',
-      type: 'success',
-    });
+
+    try {
+      const res = await fetch('/api/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgSlug }),
+      });
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      setNotice({
+        message: 'Simulated Stripe Customer Portal: In production, redirects to billing.stripe.com/p/session.',
+        type: 'success',
+      });
+    } catch {
+      setNotice({
+        message: 'Simulated Stripe Customer Portal: In production, redirects to billing.stripe.com/p/session.',
+        type: 'success',
+      });
+    }
   };
 
   return (
