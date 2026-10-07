@@ -5,6 +5,7 @@ import UsageService from '@/services/usage.service';
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const orgSlug = req.headers.get('x-org-slug') || 'acme-corp';
+  const orgId = orgSlug === 'hyperflow-ai' ? 'org_2' : orgSlug === 'devstudio' ? 'org_3' : 'org_1';
 
   // Check Bearer Token
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -35,9 +36,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: any = {};
+  let body: { quantity?: unknown } = {};
   try {
-    body = await req.json();
+    body = (await req.json()) as { quantity?: unknown };
   } catch {
     body = { quantity: 1 };
   }
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
   const quantity = typeof body.quantity === 'number' ? body.quantity : 1;
 
   // Record metered usage increment
-  const newTotal = await UsageService.recordUsage('org_acme_corp', 'api_requests', quantity);
+  const newTotal = await UsageService.recordUsage(orgId, 'api_requests', quantity);
 
   return NextResponse.json(
     {
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
   );
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   return NextResponse.json({
     status: 'healthy',
     endpoint: '/api/v1/metrics',

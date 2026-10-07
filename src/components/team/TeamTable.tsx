@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Shield, Trash2, Clock, Check, MoreVertical } from 'lucide-react';
+import Image from 'next/image';
+import { Trash2, Clock } from 'lucide-react';
 import { Member, Invitation, Role } from '@/types';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
@@ -86,9 +87,12 @@ export const TeamTable: React.FC<TeamTableProps> = ({
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-indigo-950 border border-indigo-700/60 flex items-center justify-center text-xs font-bold text-indigo-300 overflow-hidden">
                         {member.user.image ? (
-                          <img
+                          <Image
                             src={member.user.image}
                             alt={member.user.name || member.user.email}
+                            width={36}
+                            height={36}
+                            unoptimized
                             className="w-full h-full object-cover"
                           />
                         ) : (

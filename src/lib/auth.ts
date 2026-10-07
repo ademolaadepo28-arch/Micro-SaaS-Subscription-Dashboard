@@ -1,7 +1,7 @@
 // Session & RBAC Helpers
 // Spec #03 - Strict access levels (OWNER, ADMIN, MEMBER, BILLING)
 
-import { Role, User, Member } from '@/types';
+import { Role, User } from '@/types';
 import db from './db';
 
 export const ROLE_HIERARCHY: Record<Role, number> = {

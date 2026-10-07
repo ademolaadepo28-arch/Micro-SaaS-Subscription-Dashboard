@@ -1,10 +1,8 @@
 'use client';
 
 import React from 'react';
-import { ShieldCheck, UserCheck, Bell, ExternalLink, Terminal } from 'lucide-react';
-import Badge from '../ui/Badge';
+import { ShieldCheck } from 'lucide-react';
 import { Role } from '@/types';
-import { ROLES_DESCRIPTION } from '@/lib/constants';
 
 interface HeaderProps {
   currentRole: Role;

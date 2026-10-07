@@ -7,9 +7,13 @@ const processedEventIds = new Set<string>();
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
-    const signature = req.headers.get('stripe-signature') || '';
+    const signature = req.headers.get('stripe-signature');
 
-    let event: any;
+    if (!signature && process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Missing stripe signature' }, { status: 400 });
+    }
+
+    let event: { id?: string; type: string; data: { object: Record<string, unknown> } };
     try {
       event = JSON.parse(rawBody);
     } catch {
@@ -45,10 +49,10 @@ export async function POST(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Stripe webhook processing error:', err);
     return NextResponse.json(
-      { error: err?.message || 'Webhook handler error' },
+      { error: err instanceof Error ? err.message : 'Webhook handler error' },
       { status: 500 }
     );
   }

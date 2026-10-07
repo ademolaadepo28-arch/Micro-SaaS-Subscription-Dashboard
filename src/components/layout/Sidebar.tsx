@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   CreditCard,
@@ -10,7 +10,6 @@ import {
   KeyRound,
   Activity,
   Settings,
-  Building,
   ChevronDown,
   Layers,
 } from 'lucide-react';
@@ -31,6 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   availableOrgs,
 }) => {
   const pathname = usePathname();
+  const router = useRouter();
 
   const navItems = [
     {
@@ -95,14 +95,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Multi-Tenant Org Switcher */}
         <div className="relative">
-          <label className="text-[10px] uppercase font-semibold text-zinc-500 block mb-1">
-            Active Workspace
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-[10px] uppercase font-semibold text-zinc-500">
+              Workspace
+            </label>
+            <span className="text-[10px] text-zinc-400 truncate max-w-[120px]">{orgName}</span>
+          </div>
           <div className="relative">
             <select
               value={orgSlug}
               onChange={(e) => {
-                window.location.href = `/dashboard/${e.target.value}`;
+                router.push(`/dashboard/${e.target.value}`);
               }}
               className="w-full appearance-none bg-zinc-900 border border-zinc-700/80 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-100 pr-8 focus:outline-none focus:border-indigo-500 cursor-pointer"
             >

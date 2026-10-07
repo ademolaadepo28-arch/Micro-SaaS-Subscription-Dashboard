@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Layers, Building, Mail, ArrowRight } from 'lucide-react';
+import { Layers, Building, Mail } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 export default function RegisterPage() {

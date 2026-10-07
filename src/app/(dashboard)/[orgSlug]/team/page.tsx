@@ -1,100 +1,96 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Users, UserPlus, ShieldCheck, AlertCircle } from 'lucide-react';
-import Card, { CardHeader } from '@/components/ui/Card';
+import { UserPlus, AlertCircle } from 'lucide-react';
+import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
 import InviteMemberModal from '@/components/team/InviteMemberModal';
 import TeamTable from '@/components/team/TeamTable';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { Member, Invitation, Role, PlanTier } from '@/types';
 import { PLANS } from '@/lib/constants';
 
+const INITIAL_MEMBERS: Member[] = [
+  {
+    id: 'mem_1',
+    role: 'OWNER',
+    organizationId: 'org_1',
+    userId: 'usr_1',
+    user: {
+      id: 'usr_1',
+      name: 'Sarah Connor',
+      email: 'sarah@skynet-defense.io',
+      emailVerified: new Date('2026-01-01'),
+      image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+    },
+    createdAt: new Date('2026-01-01'),
+  },
+  {
+    id: 'mem_2',
+    role: 'ADMIN',
+    organizationId: 'org_1',
+    userId: 'usr_2',
+    user: {
+      id: 'usr_2',
+      name: 'Alex Rivera',
+      email: 'alex@skynet-defense.io',
+      emailVerified: new Date('2026-01-05'),
+      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+    },
+    createdAt: new Date('2026-01-05'),
+  },
+  {
+    id: 'mem_3',
+    role: 'BILLING',
+    organizationId: 'org_1',
+    userId: 'usr_3',
+    user: {
+      id: 'usr_3',
+      name: 'Marcus Vance',
+      email: 'marcus.finance@skynet-defense.io',
+      emailVerified: new Date('2026-01-10'),
+      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+    },
+    createdAt: new Date('2026-01-10'),
+  },
+  {
+    id: 'mem_4',
+    role: 'MEMBER',
+    organizationId: 'org_1',
+    userId: 'usr_4',
+    user: {
+      id: 'usr_4',
+      name: 'Elena Rostova',
+      email: 'elena@skynet-defense.io',
+      emailVerified: new Date('2026-02-01'),
+      image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    },
+    createdAt: new Date('2026-02-01'),
+  },
+];
+
+const INITIAL_INVITATIONS: Invitation[] = [
+  {
+    id: 'inv_1',
+    email: 'devops-lead@partner.io',
+    role: 'ADMIN',
+    token: 'tok_inv_882910fa',
+    expiresAt: new Date('2026-10-14T19:00:00Z'),
+    organizationId: 'org_1',
+    createdAt: new Date('2026-10-07T19:00:00Z'),
+  },
+];
+
 export default function TeamManagementPage() {
   const params = useParams();
   const orgSlug = params.orgSlug as string;
   const { role } = useWorkspace();
 
-  const [tier, setTier] = useState<PlanTier>('TEAM');
+  const tier: PlanTier = orgSlug === 'hyperflow-ai' ? 'PRO' : orgSlug === 'devstudio' ? 'FREE' : 'TEAM';
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [members, setMembers] = useState<Member[]>([
-    {
-      id: 'mem_1',
-      role: 'OWNER',
-      organizationId: 'org_1',
-      userId: 'usr_1',
-      user: {
-        id: 'usr_1',
-        name: 'Sarah Connor',
-        email: 'sarah@skynet-defense.io',
-        emailVerified: new Date(),
-        image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-      },
-      createdAt: new Date('2026-01-01'),
-    },
-    {
-      id: 'mem_2',
-      role: 'ADMIN',
-      organizationId: 'org_1',
-      userId: 'usr_2',
-      user: {
-        id: 'usr_2',
-        name: 'Alex Rivera',
-        email: 'alex@skynet-defense.io',
-        emailVerified: new Date(),
-        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-      },
-      createdAt: new Date('2026-01-05'),
-    },
-    {
-      id: 'mem_3',
-      role: 'BILLING',
-      organizationId: 'org_1',
-      userId: 'usr_3',
-      user: {
-        id: 'usr_3',
-        name: 'Marcus Vance',
-        email: 'marcus.finance@skynet-defense.io',
-        emailVerified: new Date(),
-        image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-      },
-      createdAt: new Date('2026-01-10'),
-    },
-    {
-      id: 'mem_4',
-      role: 'MEMBER',
-      organizationId: 'org_1',
-      userId: 'usr_4',
-      user: {
-        id: 'usr_4',
-        name: 'Elena Rostova',
-        email: 'elena@skynet-defense.io',
-        emailVerified: new Date(),
-        image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-      },
-      createdAt: new Date('2026-02-01'),
-    },
-  ]);
-
-  const [invitations, setInvitations] = useState<Invitation[]>([
-    {
-      id: 'inv_1',
-      email: 'devops-lead@partner.io',
-      role: 'ADMIN',
-      token: 'tok_inv_882910fa',
-      expiresAt: new Date(Date.now() + 7 * 86400 * 1000),
-      organizationId: 'org_1',
-      createdAt: new Date(),
-    },
-  ]);
-
-  useEffect(() => {
-    if (orgSlug === 'hyperflow-ai') setTier('PRO');
-    else if (orgSlug === 'devstudio') setTier('FREE');
-    else setTier('TEAM');
-  }, [orgSlug]);
+  const [members, setMembers] = useState<Member[]>(INITIAL_MEMBERS);
+  const [invitations, setInvitations] = useState<Invitation[]>(INITIAL_INVITATIONS);
 
   const plan = PLANS[tier];
   const maxSeats = plan.seatLimit;

@@ -6,11 +6,6 @@ import {
   ShieldCheck,
   Activity,
   ArrowRight,
-  Database,
-  Cpu,
-  CheckCircle2,
-  Terminal,
-  ExternalLink,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';

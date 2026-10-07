@@ -1,35 +1,29 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { useParams } from 'next/navigation';
 import { CreditCard, ExternalLink, ShieldAlert, CheckCircle2, AlertOctagon } from 'lucide-react';
 import PricingCards from '@/components/billing/PricingCards';
 import Card, { CardHeader } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { useWorkspace } from '@/context/WorkspaceContext';
-import { PlanTier, Organization } from '@/types';
+import { PlanTier } from '@/types';
 import { PLANS } from '@/lib/constants';
 
 export default function BillingPage() {
   const params = useParams();
-  const router = useRouter();
   const orgSlug = params.orgSlug as string;
   const { role } = useWorkspace();
 
-  const [currentTier, setCurrentTier] = useState<PlanTier>('TEAM');
-  const [org, setOrg] = useState<any>(null);
+  const defaultTier: PlanTier = orgSlug === 'hyperflow-ai' ? 'PRO' : orgSlug === 'devstudio' ? 'FREE' : 'TEAM';
+  const [customTiers, setCustomTiers] = useState<Record<string, PlanTier>>({});
+  const currentTier = customTiers[orgSlug] ?? defaultTier;
+
   const [isLoading, setIsLoading] = useState(false);
   const [notice, setNotice] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const canManageBilling = role === 'OWNER' || role === 'BILLING';
-
-  useEffect(() => {
-    // Determine tier based on active workspace
-    if (orgSlug === 'hyperflow-ai') setCurrentTier('PRO');
-    else if (orgSlug === 'devstudio') setCurrentTier('FREE');
-    else setCurrentTier('TEAM');
-  }, [orgSlug]);
 
   const handleSelectTier = async (newTier: PlanTier) => {
     if (!canManageBilling) {
@@ -46,14 +40,14 @@ export default function BillingPage() {
     try {
       // Simulate Stripe checkout or instant tier update
       await new Promise((r) => setTimeout(r, 800));
-      setCurrentTier(newTier);
+      setCustomTiers((prev) => ({ ...prev, [orgSlug]: newTier }));
       setNotice({
         message: `Successfully synchronized subscription! Workspace updated to ${PLANS[newTier].name}.`,
         type: 'success',
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setNotice({
-        message: err?.message || 'Failed to update subscription tier.',
+        message: err instanceof Error ? err.message : 'Failed to update subscription tier.',
         type: 'error',
       });
     } finally {

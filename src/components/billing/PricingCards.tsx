@@ -176,7 +176,8 @@ export const PricingCards: React.FC<PricingCardsProps> = ({
                   <Button
                     variant={plan.popular ? 'primary' : 'outline'}
                     className="w-full group"
-                    isLoading={isPending}
+                    isLoading={isPending || (pendingTier === tierKey && isLoading)}
+                    disabled={isLoading}
                     onClick={() => handleSelect(tierKey)}
                   >
                     <span>{tierKey === 'FREE' ? 'Downgrade to Free' : `Upgrade to ${plan.name}`}</span>

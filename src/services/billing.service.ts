@@ -4,7 +4,6 @@
 import db from '@/lib/db';
 import { PLANS } from '@/lib/constants';
 import { PlanTier, SubscriptionStatus } from '@/types';
-import stripe from '@/lib/stripe';
 
 export class BillingService {
   // Identify plan tier from price ID or fallback
@@ -70,34 +69,35 @@ export class BillingService {
   }
 
   // Process Stripe webhook event idempotently
-  static async processStripeWebhook(event: { type: string; data: { object: any } }) {
+  static async processStripeWebhook(event: { type: string; data: { object: Record<string, unknown> } }) {
     const obj = event.data.object;
 
     switch (event.type) {
       case 'checkout.session.completed': {
-        const customerId = obj.customer;
-        const subscriptionId = obj.subscription;
+        const customerId = obj.customer as string;
+        const subscriptionId = obj.subscription as string;
         // In real world, match customer ID or client_reference_id
         console.log(`[Stripe Webhook] Checkout completed for customer: ${customerId}, sub: ${subscriptionId}`);
         break;
       }
 
       case 'customer.subscription.updated': {
-        const subId = obj.id;
-        const status = obj.status?.toUpperCase() as SubscriptionStatus;
-        const priceId = obj.items?.data?.[0]?.price?.id;
+        const subId = obj.id as string;
+        const status = typeof obj.status === 'string' ? (obj.status.toUpperCase() as SubscriptionStatus) : 'ACTIVE';
+        const items = obj.items as { data?: { price?: { id?: string } }[] } | undefined;
+        const priceId = items?.data?.[0]?.price?.id;
         console.log(`[Stripe Webhook] Subscription ${subId} updated to ${status}, price: ${priceId}`);
         break;
       }
 
       case 'customer.subscription.deleted': {
-        const subId = obj.id;
+        const subId = obj.id as string;
         console.log(`[Stripe Webhook] Subscription ${subId} canceled`);
         break;
       }
 
       case 'invoice.payment_failed': {
-        const subId = obj.subscription;
+        const subId = obj.subscription as string;
         console.log(`[Stripe Webhook] Invoice payment failed for subscription ${subId}. Grace period initiated.`);
         break;
       }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Mail, Shield, AlertCircle, Copy, Check } from 'lucide-react';
+import { Mail, AlertCircle, Copy, Check } from 'lucide-react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { Role } from '@/types';
@@ -49,8 +49,8 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     try {
       const res = await onInvite(email, role);
       setCreatedToken(res.token);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to generate invitation.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to generate invitation.');
     } finally {
       setIsLoading(false);
     }

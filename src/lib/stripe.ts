@@ -13,7 +13,7 @@ export interface StripeEvent {
   id: string;
   type: string;
   data: {
-    object: Record<string, any>;
+    object: Record<string, unknown>;
   };
 }
 
@@ -45,12 +45,14 @@ class StripeService {
   async createBillingPortalSession(customerId: string, returnUrl: string): Promise<{ url: string }> {
     // Returns Stripe customer billing portal URL
     return {
-      url: `${returnUrl}?portal_simulated=true`,
+      url: `${returnUrl}?portal_simulated=true&customer=${customerId}`,
     };
   }
 
   // Webhook event verification simulator
-  verifyWebhookSignature(payload: string, signature: string, secret: string): StripeEvent {
+  verifyWebhookSignature(payload: string, signature?: string, secret?: string): StripeEvent {
+    void signature;
+    void secret;
     try {
       const parsed = JSON.parse(payload);
       return parsed as StripeEvent;

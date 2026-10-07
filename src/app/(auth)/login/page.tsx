@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Layers, ShieldCheck, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
+import { Layers, Mail, Lock, ArrowRight } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 export default function LoginPage() {

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Role, Organization } from '@/types';
+import React, { createContext, useContext, useState } from 'react';
+import { Role } from '@/types';
 
 interface WorkspaceContextType {
   role: Role;

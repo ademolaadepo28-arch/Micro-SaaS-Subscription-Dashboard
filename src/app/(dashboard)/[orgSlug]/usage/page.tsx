@@ -1,48 +1,37 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
-  Activity,
-  HardDrive,
   AlertTriangle,
   AlertOctagon,
-  Sparkles,
-  TrendingUp,
-  RefreshCw,
   Plus,
 } from 'lucide-react';
 import Card, { CardHeader } from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import UsageProgressBar from '@/components/billing/UsageProgressBar';
 import { PLANS, THRESHOLDS } from '@/lib/constants';
 import { PlanTier } from '@/types';
 
+const USAGE_PRESETS: Record<string, { tier: PlanTier; reqs: number; storage: number }> = {
+  'hyperflow-ai': { tier: 'PRO', reqs: 34200, storage: 3221225472 },
+  'devstudio': { tier: 'FREE', reqs: 450, storage: 45000000 },
+  'acme-corp': { tier: 'TEAM', reqs: 412850, storage: 34359738368 },
+};
+
 export default function MeteredUsagePage() {
   const params = useParams();
   const orgSlug = params.orgSlug as string;
 
-  const [tier, setTier] = useState<PlanTier>('TEAM');
-  const [apiRequests, setApiRequests] = useState(412850);
-  const [storageBytes, setStorageBytes] = useState(34359738368); // ~32 GB
+  const defaultData = USAGE_PRESETS[orgSlug] || { tier: 'TEAM' as PlanTier, reqs: 412850, storage: 34359738368 };
+  const tier = defaultData.tier;
+
+  const [addedRequests, setAddedRequests] = useState<Record<string, number>>({});
+  const [addedStorage, setAddedStorage] = useState<Record<string, number>>({});
   const [isSimulating, setIsSimulating] = useState(false);
 
-  useEffect(() => {
-    if (orgSlug === 'hyperflow-ai') {
-      setTier('PRO');
-      setApiRequests(34200);
-      setStorageBytes(3221225472); // ~3 GB
-    } else if (orgSlug === 'devstudio') {
-      setTier('FREE');
-      setApiRequests(450);
-      setStorageBytes(45000000); // 45 MB
-    } else {
-      setTier('TEAM');
-      setApiRequests(412850);
-      setStorageBytes(34359738368);
-    }
-  }, [orgSlug]);
+  const apiRequests = defaultData.reqs + (addedRequests[orgSlug] ?? 0);
+  const storageBytes = defaultData.storage + (addedStorage[orgSlug] ?? 0);
 
   const plan = PLANS[tier];
   const quota = plan.meteredApiQuota;
@@ -59,13 +48,13 @@ export default function MeteredUsagePage() {
   const handleSimulateBurst = (count: number) => {
     setIsSimulating(true);
     setTimeout(() => {
-      setApiRequests((prev) => prev + count);
+      setAddedRequests((prev) => ({ ...prev, [orgSlug]: (prev[orgSlug] ?? 0) + count }));
       setIsSimulating(false);
     }, 400);
   };
 
   const handleSimulateStorage = (bytes: number) => {
-    setStorageBytes((prev) => prev + bytes);
+    setAddedStorage((prev) => ({ ...prev, [orgSlug]: (prev[orgSlug] ?? 0) + bytes }));
   };
 
   return (

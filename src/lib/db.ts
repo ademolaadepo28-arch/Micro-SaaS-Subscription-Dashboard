@@ -1,4 +1,4 @@
-import { Organization, User, Member, ApiKey, UsageRecord, Invitation, Role, SubscriptionStatus } from '@/types';
+import { Organization, User, Member, ApiKey, UsageRecord, Invitation, Role } from '@/types';
 
 // Initial Seed Data for Multi-tenant B2B Architecture Demo
 const SEED_USERS: User[] = [

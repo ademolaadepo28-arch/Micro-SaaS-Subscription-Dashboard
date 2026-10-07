@@ -8,7 +8,6 @@ import {
   KeyRound,
   ArrowUpRight,
   TrendingUp,
-  AlertTriangle,
   Zap,
 } from 'lucide-react';
 import db from '@/lib/db';
