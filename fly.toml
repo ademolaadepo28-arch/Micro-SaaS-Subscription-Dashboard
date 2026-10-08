@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for micro-saas-subscription-dashboard on 2026-10-08T21:20:33Z
+# fly.toml app configuration file generated for micro-saas-subscription-dashboard-wr4e-w on 2026-10-08T22:54:29Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'micro-saas-subscription-dashboard'
+app = 'micro-saas-subscription-dashboard-wr4e-w'
 primary_region = 'lhr'
 kill_signal = 'SIGINT'
 kill_timeout = '10s'
