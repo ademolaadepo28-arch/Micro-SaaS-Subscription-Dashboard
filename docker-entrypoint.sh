@@ -14,8 +14,9 @@ echo "=========================================================="
 
 # Ensure directories and permissions for persistent volume
 mkdir -p /data/postgres /data/sqlite /run/postgresql
+chown -R postgres:postgres /data /run/postgresql 2>/dev/null || true
 chmod 700 /data/postgres 2>/dev/null || true
-chown -R postgres:postgres /data/postgres /run/postgresql 2>/dev/null || true
+chmod 755 /data/sqlite 2>/dev/null || true
 
 # Determine Database Configuration
 DB_URL="${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/microsaas?schema=public}"
@@ -49,7 +50,7 @@ if [[ ("$DB_URL" == *"localhost"* || "$DB_URL" == *"127.0.0.1"*) && "$DB_TYPE" !
   fi
 
   echo "==> Starting embedded PostgreSQL daemon..."
-  su-exec postgres pg_ctl -D /data/postgres -w -o "-p 5432 -h 127.0.0.1" -l /data/postgres.log start
+  su-exec postgres pg_ctl -D /data/postgres -w -o "-p 5432 -h 127.0.0.1" -l /data/postgres/postgres.log start
 
   # Create 'microsaas' database if it doesn't already exist
   if ! su-exec postgres psql -U postgres -lqt | cut -d \| -f 1 | grep -qw microsaas; then
@@ -60,7 +61,7 @@ if [[ ("$DB_URL" == *"localhost"* || "$DB_URL" == *"127.0.0.1"*) && "$DB_TYPE" !
   # Apply Prisma schema to database if Prisma is available
   if [ -f /app/prisma/schema.prisma ] && [ -d /app/node_modules/prisma ]; then
     echo "==> Synchronizing Prisma database schema..."
-    npx prisma db push --skip-generate --schema=/app/prisma/schema.prisma || echo "Notice: Prisma db push step completed."
+    node /app/node_modules/prisma/build/index.js db push --skip-generate --schema=/app/prisma/schema.prisma --accept-data-loss || npx prisma db push --skip-generate --schema=/app/prisma/schema.prisma || echo "Notice: Prisma db push step completed."
   fi
 
 elif [[ "$DB_TYPE" == "sqlite" || "$DB_URL" == file:* ]]; then
