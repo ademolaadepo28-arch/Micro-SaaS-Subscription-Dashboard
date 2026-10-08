@@ -150,5 +150,58 @@ docker compose up -d
 
 ---
 
-## 6. License
+## 6. Deployment to Fly.io (Embedded SQLite / PostgreSQL)
+
+This application is fully containerized for deployment on [Fly.io](https://fly.io) with a single, self-contained full-stack container backed by a persistent Fly Volume (`/data`).
+
+### Architecture
+- **Multi-Stage Container**: Node.js 22 Alpine standalone Next.js server with minimal footprint.
+- **Embedded Database**: Runs embedded PostgreSQL or SQLite within the container with persistent data mounted to `/data`.
+- **Zero-Downtime Clean Shutdowns**: Automated signal trapping (`SIGTERM`/`SIGINT`) for PostgreSQL WAL flushes and connection drains.
+
+### Quick Deploy Steps
+
+1. **Install flyctl (if not already installed)**:
+   ```bash
+   curl -L https://fly.io/install.sh | sh
+   fly auth login
+   ```
+
+2. **Launch Application Configuration**:
+   ```bash
+   fly launch --no-deploy
+   ```
+
+3. **Provision Persistent Fly Volume**:
+   Create a 1GB persistent volume in your chosen region (e.g. `iad`):
+   ```bash
+   fly volumes create microsaas_data --region iad --size 1
+   ```
+
+4. **Configure Production Secrets**:
+   ```bash
+   fly secrets set \
+     NEXTAUTH_SECRET="your-secure-random-secret" \
+     STRIPE_SECRET_KEY="sk_live_..." \
+     STRIPE_PUBLISHABLE_KEY="pk_live_..." \
+     STRIPE_WEBHOOK_SECRET="whsec_..." \
+     STRIPE_PRO_PRICE_ID="price_..." \
+     STRIPE_TEAM_PRICE_ID="price_..."
+   ```
+
+5. **Deploy**:
+   ```bash
+   fly deploy
+   ```
+
+6. **View Live Dashboard**:
+   ```bash
+   fly open
+   fly logs
+   ```
+
+---
+
+## 7. License
 MIT License
+
