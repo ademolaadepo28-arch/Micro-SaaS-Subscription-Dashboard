@@ -134,6 +134,7 @@ export default function TeamManagementPage() {
         name: inv.email.split('@')[0],
         email: inv.email,
         emailVerified: new Date(),
+        image: null,
       },
       createdAt: new Date(),
     };
