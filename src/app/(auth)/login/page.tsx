@@ -3,14 +3,20 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Layers, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Layers, Mail, Lock, ArrowRight, CheckCircle2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import Modal from '@/components/ui/Modal';
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('sarah@skynet-defense.io');
   const [password, setPassword] = useState('••••••••••••');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Forgot password modal state
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +28,16 @@ export default function LoginPage() {
 
   const handleDemoLogin = (slug: string) => {
     router.push(`/dashboard/${slug}`);
+  };
+
+  const handleForgotSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotSuccess(true);
+    setTimeout(() => {
+      setForgotSuccess(false);
+      setIsForgotModalOpen(false);
+      setForgotEmail('');
+    }, 2000);
   };
 
   return (
@@ -56,9 +72,17 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-zinc-300">Password</label>
-                <a href="#" className="text-[11px] text-indigo-400 hover:text-indigo-300">
+                <button
+                  type="button"
+                  id="btn-forgot-password"
+                  onClick={() => {
+                    setForgotEmail(email);
+                    setIsForgotModalOpen(true);
+                  }}
+                  className="text-[11px] text-indigo-400 hover:text-indigo-300 cursor-pointer"
+                >
                   Forgot?
-                </a>
+                </button>
               </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
@@ -86,21 +110,21 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => handleDemoLogin('acme-corp')}
-                className="p-2 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-indigo-500 text-[11px] font-medium text-zinc-300 hover:text-indigo-300 transition-colors text-center"
+                className="p-2 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-indigo-500 text-[11px] font-medium text-zinc-300 hover:text-indigo-300 transition-colors text-center cursor-pointer"
               >
                 Acme Corp (Team)
               </button>
               <button
                 type="button"
                 onClick={() => handleDemoLogin('hyperflow-ai')}
-                className="p-2 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-indigo-500 text-[11px] font-medium text-zinc-300 hover:text-indigo-300 transition-colors text-center"
+                className="p-2 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-indigo-500 text-[11px] font-medium text-zinc-300 hover:text-indigo-300 transition-colors text-center cursor-pointer"
               >
                 Hyperflow (Pro)
               </button>
               <button
                 type="button"
                 onClick={() => handleDemoLogin('devstudio')}
-                className="p-2 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-indigo-500 text-[11px] font-medium text-zinc-300 hover:text-indigo-300 transition-colors text-center"
+                className="p-2 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-indigo-500 text-[11px] font-medium text-zinc-300 hover:text-indigo-300 transition-colors text-center cursor-pointer"
               >
                 DevStudio (Free)
               </button>
@@ -115,6 +139,44 @@ export default function LoginPage() {
           </Link>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <Modal
+        isOpen={isForgotModalOpen}
+        onClose={() => setIsForgotModalOpen(false)}
+        title="Reset Account Password"
+        description="Enter your email to receive a password reset link."
+      >
+        {forgotSuccess ? (
+          <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <span>Password reset instructions dispatched to your email!</span>
+          </div>
+        ) : (
+          <form onSubmit={handleForgotSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-300">Email Address</label>
+              <input
+                type="email"
+                required
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                placeholder="you@company.com"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div className="pt-2 flex justify-end gap-2 border-t border-zinc-800">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setIsForgotModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" size="sm">
+                Send Reset Link
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }
+

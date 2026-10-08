@@ -92,10 +92,17 @@ export default function TeamManagementPage() {
   const [members, setMembers] = useState<Member[]>(INITIAL_MEMBERS);
   const [invitations, setInvitations] = useState<Invitation[]>(INITIAL_INVITATIONS);
 
+  const [toastNotice, setToastNotice] = useState<string | null>(null);
+
   const plan = PLANS[tier];
   const maxSeats = plan.seatLimit;
   const currentSeats = members.length;
   const canManageTeam = role === 'OWNER' || role === 'ADMIN';
+
+  const showToast = (msg: string) => {
+    setToastNotice(msg);
+    setTimeout(() => setToastNotice(null), 3000);
+  };
 
   const handleInvite = async (email: string, inviteRole: Role) => {
     const token = `tok_inv_${Math.random().toString(36).substring(2, 10)}`;
@@ -109,21 +116,49 @@ export default function TeamManagementPage() {
       createdAt: new Date(),
     };
     setInvitations((prev) => [...prev, newInv]);
+    showToast(`Generated invite token for ${email}`);
     return { token };
+  };
+
+  const handleSimulateAcceptInvite = (token: string) => {
+    const inv = invitations.find((i) => i.token === token);
+    if (!inv) return;
+
+    const newMember: Member = {
+      id: `mem_${Date.now()}`,
+      role: inv.role,
+      organizationId: 'org_1',
+      userId: `usr_${Date.now()}`,
+      user: {
+        id: `usr_${Date.now()}`,
+        name: inv.email.split('@')[0],
+        email: inv.email,
+        emailVerified: new Date(),
+      },
+      createdAt: new Date(),
+    };
+
+    setMembers((prev) => [...prev, newMember]);
+    setInvitations((prev) => prev.filter((i) => i.id !== inv.id));
+    showToast(`Simulated acceptance: ${inv.email} added to active team members!`);
   };
 
   const handleUpdateRole = async (memberId: string, newRole: Role) => {
     setMembers((prev) =>
       prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m))
     );
+    showToast(`Updated member role to ${newRole}`);
   };
 
   const handleRemoveMember = async (memberId: string) => {
+    const target = members.find((m) => m.id === memberId);
     setMembers((prev) => prev.filter((m) => m.id !== memberId));
+    showToast(`Removed ${target?.user?.name || target?.user?.email || 'member'} from workspace`);
   };
 
   const handleRevokeInvitation = async (invId: string) => {
     setInvitations((prev) => prev.filter((i) => i.id !== invId));
+    showToast('Revoked invitation token.');
   };
 
   return (
@@ -131,14 +166,15 @@ export default function TeamManagementPage() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-800/80">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-zinc-100">Team & RBAC Management</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-zinc-100">Team &amp; RBAC Management</h2>
           <p className="text-xs text-zinc-400 mt-1">
             Control member seats, roles (OWNER, ADMIN, BILLING, MEMBER), and invitation tokens.
           </p>
         </div>
 
-        <div>
+        <div className="flex items-center gap-2">
           <Button
+            id="btn-invite-member"
             variant="primary"
             size="sm"
             onClick={() => setIsInviteModalOpen(true)}
@@ -149,6 +185,13 @@ export default function TeamManagementPage() {
           </Button>
         </div>
       </div>
+
+      {/* Toast Notice */}
+      {toastNotice && (
+        <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in duration-200">
+          <span>{toastNotice}</span>
+        </div>
+      )}
 
       {/* Seat Allocation Banner */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -219,6 +262,7 @@ export default function TeamManagementPage() {
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
         onInvite={handleInvite}
+        onSimulateAccept={handleSimulateAcceptInvite}
         currentSeats={currentSeats}
         maxSeats={maxSeats}
       />

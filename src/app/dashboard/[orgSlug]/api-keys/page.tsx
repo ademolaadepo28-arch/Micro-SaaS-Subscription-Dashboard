@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Plus, Copy, Check, Trash2, ShieldCheck, Play, AlertCircle } from 'lucide-react';
+import { Plus, Copy, Check, Trash2, ShieldCheck, Play, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Card, { CardHeader } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
+import Badge from '@/components/ui/Badge';
 import { useWorkspace } from '@/context/WorkspaceContext';
 import { ApiKey } from '@/types';
 
@@ -40,13 +41,24 @@ export default function ApiKeysPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [keyName, setKeyName] = useState('');
   const [createdKey, setCreatedKey] = useState<string | null>(null);
-  const [copiedKey, setCopiedKey] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Revoke confirmation modal
+  const [keyToRevoke, setKeyToRevoke] = useState<ApiKey | null>(null);
+  const [toastNotice, setToastNotice] = useState<string | null>(null);
 
   // Live API Tester State
+  const [testQuantity, setTestQuantity] = useState(1);
   const [testResponse, setTestResponse] = useState<Record<string, unknown> | null>(null);
+  const [testStatus, setTestStatus] = useState<number | null>(null);
   const [isTesting, setIsTesting] = useState(false);
 
   const canManageKeys = role === 'OWNER' || role === 'ADMIN';
+
+  const showToast = (msg: string) => {
+    setToastNotice(msg);
+    setTimeout(() => setToastNotice(null), 3000);
+  };
 
   const handleCreateKey = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,35 +78,41 @@ export default function ApiKeysPage() {
     setKeys([newKeyObj, ...keys]);
     setCreatedKey(secretKey);
     setKeyName('');
+    showToast(`Created API key "${keyName}" successfully.`);
   };
 
-  const handleRevokeKey = (keyId: string) => {
-    setKeys(keys.filter((k) => k.id !== keyId));
+  const confirmRevokeKey = () => {
+    if (!keyToRevoke) return;
+    setKeys(keys.filter((k) => k.id !== keyToRevoke.id));
+    showToast(`Revoked API key "${keyToRevoke.name}".`);
+    setKeyToRevoke(null);
   };
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, identifier: string) => {
     navigator.clipboard.writeText(text);
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
+    setCopiedKey(identifier);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
   // Test metered API endpoint
   const handleTestApi = async () => {
     setIsTesting(true);
     try {
+      const activeKey = keys[0]?.key || 'ms_live_demo';
       const res = await fetch('/api/v1/metrics', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${keys[0]?.key || 'ms_live_demo'}`,
+          'Authorization': `Bearer ${activeKey}`,
           'x-org-slug': orgSlug,
         },
         body: JSON.stringify({
           metric: 'api_requests',
-          quantity: 1,
+          quantity: testQuantity,
         }),
       });
       const data = await res.json();
+      setTestStatus(res.status);
       setTestResponse({
         status: res.status,
         headers: {
@@ -103,7 +121,9 @@ export default function ApiKeysPage() {
         },
         body: data,
       });
+      showToast(`Dispatched ${testQuantity} request(s) - Status ${res.status}`);
     } catch (err: unknown) {
+      setTestStatus(500);
       setTestResponse({
         error: err instanceof Error ? err.message : String(err),
       });
@@ -117,7 +137,7 @@ export default function ApiKeysPage() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-800/80">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-zinc-100">API Credentials & Keys</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-zinc-100">API Credentials &amp; Keys</h2>
           <p className="text-xs text-zinc-400 mt-1">
             Authenticate external ingestion and SDK queries with isolated organizational bearer tokens.
           </p>
@@ -125,6 +145,7 @@ export default function ApiKeysPage() {
 
         <div>
           <Button
+            id="btn-create-api-key"
             variant="primary"
             size="sm"
             onClick={() => {
@@ -138,6 +159,14 @@ export default function ApiKeysPage() {
           </Button>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toastNotice && (
+        <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          <span>{toastNotice}</span>
+        </div>
+      )}
 
       {!canManageKeys && (
         <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs flex items-center gap-3">
@@ -156,14 +185,14 @@ export default function ApiKeysPage() {
         />
 
         <div className="overflow-x-auto pt-2">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-left text-xs border-collapse min-w-[550px]">
             <thead>
               <tr className="border-b border-zinc-800 text-zinc-500 uppercase tracking-wider font-semibold">
                 <th className="py-2.5 px-3">Token Name</th>
                 <th className="py-2.5 px-3">API Key Prefix</th>
                 <th className="py-2.5 px-3">Last Active</th>
                 <th className="py-2.5 px-3">Created</th>
-                {canManageKeys && <th className="py-2.5 px-3 text-right">Actions</th>}
+                <th className="py-2.5 px-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60 text-zinc-300">
@@ -171,9 +200,22 @@ export default function ApiKeysPage() {
                 <tr key={k.id} className="hover:bg-zinc-800/30 transition-colors">
                   <td className="py-3 px-3 font-medium text-zinc-100">{k.name}</td>
                   <td className="py-3 px-3 font-mono text-zinc-400">
-                    <span className="bg-zinc-950 px-2 py-1 rounded border border-zinc-800">
-                      {k.key.substring(0, 10)}****************
-                    </span>
+                    <div className="inline-flex items-center gap-2">
+                      <span className="bg-zinc-950 px-2 py-1 rounded border border-zinc-800 text-[11px]">
+                        {k.key.substring(0, 10)}&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;
+                      </span>
+                      <button
+                        onClick={() => copyToClipboard(k.key, k.id)}
+                        className="p-1 rounded text-zinc-500 hover:text-zinc-200 transition-colors cursor-pointer"
+                        title="Copy Key Token"
+                      >
+                        {copiedKey === k.id ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
                   </td>
                   <td className="py-3 px-3 text-zinc-400">
                     {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleTimeString() : 'Never used'}
@@ -181,17 +223,19 @@ export default function ApiKeysPage() {
                   <td className="py-3 px-3 text-zinc-400">
                     {new Date(k.createdAt).toLocaleDateString()}
                   </td>
-                  {canManageKeys && (
-                    <td className="py-3 px-3 text-right">
+                  <td className="py-3 px-3 text-right">
+                    {canManageKeys ? (
                       <button
-                        onClick={() => handleRevokeKey(k.id)}
+                        onClick={() => setKeyToRevoke(k)}
                         className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/30 transition-colors cursor-pointer"
                         title="Revoke Key"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                    </td>
-                  )}
+                    ) : (
+                      <span className="text-zinc-600 italic">Read-only</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -205,15 +249,33 @@ export default function ApiKeysPage() {
           title="Interactive Metered Endpoint Tester"
           subtitle="Test external endpoint POST /api/v1/metrics with simulated bearer authentication"
           action={
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleTestApi}
-              isLoading={isTesting}
-            >
-              <Play className="w-3.5 h-3.5 mr-1" />
-              Dispatch API Request
-            </Button>
+            <div className="flex items-center gap-2">
+              <div className="flex rounded-lg bg-zinc-950 border border-zinc-800 p-0.5 text-xs">
+                {[1, 10, 50].map((qty) => (
+                  <button
+                    key={qty}
+                    onClick={() => setTestQuantity(qty)}
+                    className={`px-2 py-1 rounded font-mono text-[11px] cursor-pointer transition-colors ${
+                      testQuantity === qty
+                        ? 'bg-indigo-600 text-white font-bold'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    +{qty}
+                  </button>
+                ))}
+              </div>
+              <Button
+                id="btn-dispatch-test-api"
+                variant="primary"
+                size="sm"
+                onClick={handleTestApi}
+                isLoading={isTesting}
+              >
+                <Play className="w-3.5 h-3.5 mr-1" />
+                Dispatch API Request
+              </Button>
+            </div>
           }
         />
 
@@ -221,18 +283,28 @@ export default function ApiKeysPage() {
           <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono space-y-2">
             <span className="text-zinc-500 block uppercase font-bold text-[10px]">Request Preview</span>
             <div className="text-emerald-400">POST /api/v1/metrics HTTP/1.1</div>
-            <div className="text-zinc-400">Host: api.microsaas.dev</div>
-            <div className="text-zinc-400">Authorization: Bearer {keys[0]?.key || 'ms_live_...'}</div>
+            <div className="text-zinc-400">Host: micro-saas-subscription-dashboard.fly.dev</div>
+            <div className="text-zinc-400 truncate">
+              Authorization: Bearer {keys[0]?.key || 'ms_live_demo...'}
+            </div>
+            <div className="text-zinc-400">x-org-slug: {orgSlug}</div>
             <div className="text-zinc-400">Content-Type: application/json</div>
             <div className="text-indigo-400 pt-1">
-              &#123;&quot;metric&quot;: &quot;api_requests&quot;, &quot;quantity&quot;: 1&#125;
+              &#123;&quot;metric&quot;: &quot;api_requests&quot;, &quot;quantity&quot;: {testQuantity}&#125;
             </div>
           </div>
 
           <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono space-y-2 overflow-x-auto">
-            <span className="text-zinc-500 block uppercase font-bold text-[10px]">Response Payload</span>
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-500 uppercase font-bold text-[10px]">Response Payload</span>
+              {testStatus && (
+                <Badge variant={testStatus === 200 ? 'success' : 'danger'} size="sm">
+                  HTTP {testStatus}
+                </Badge>
+              )}
+            </div>
             {testResponse ? (
-              <pre className="text-zinc-300 leading-relaxed text-[11px]">
+              <pre className="text-zinc-300 leading-relaxed text-[11px] whitespace-pre-wrap">
                 {JSON.stringify(testResponse, null, 2)}
               </pre>
             ) : (
@@ -243,6 +315,29 @@ export default function ApiKeysPage() {
           </div>
         </div>
       </Card>
+
+      {/* Revoke Confirmation Modal */}
+      <Modal
+        isOpen={Boolean(keyToRevoke)}
+        onClose={() => setKeyToRevoke(null)}
+        title="Revoke API Key"
+        description="Are you sure you want to revoke this secret credential?"
+      >
+        <div className="space-y-4">
+          <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs">
+            Any applications or services using <strong>{keyToRevoke?.name}</strong> will immediately fail with HTTP 401 Unauthorized. This action cannot be undone.
+          </div>
+
+          <div className="pt-2 flex justify-end gap-2 border-t border-zinc-800">
+            <Button variant="ghost" size="sm" onClick={() => setKeyToRevoke(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" size="sm" onClick={confirmRevokeKey}>
+              Confirm Revoke
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Create Key Modal */}
       <Modal
@@ -271,8 +366,12 @@ export default function ApiKeysPage() {
                   value={createdKey}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-zinc-200"
                 />
-                <Button variant="secondary" size="sm" onClick={() => copyToClipboard(createdKey)}>
-                  {copiedKey ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                <Button variant="secondary" size="sm" onClick={() => copyToClipboard(createdKey, 'modal-key')}>
+                  {copiedKey === 'modal-key' ? (
+                    <Check className="w-4 h-4 text-emerald-400" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             </div>
@@ -311,3 +410,4 @@ export default function ApiKeysPage() {
     </div>
   );
 }
+

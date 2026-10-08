@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Mail, AlertCircle, Copy, Check } from 'lucide-react';
+import { Mail, AlertCircle, Copy, Check, UserCheck } from 'lucide-react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { Role } from '@/types';
@@ -11,6 +11,7 @@ interface InviteMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
   onInvite: (email: string, role: Role) => Promise<{ token: string }>;
+  onSimulateAccept?: (token: string) => void;
   currentSeats: number;
   maxSeats: number;
 }
@@ -19,6 +20,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   isOpen,
   onClose,
   onInvite,
+  onSimulateAccept,
   currentSeats,
   maxSeats,
 }) => {
@@ -58,7 +60,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
 
   const copyInviteLink = () => {
     if (!createdToken) return;
-    const url = `${window.location.origin}/invite?token=${createdToken}`;
+    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/invite?token=${createdToken}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -103,8 +105,21 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
             </div>
           </div>
 
-          <div className="pt-3 flex justify-end">
-            <Button variant="primary" onClick={handleResetAndClose}>
+          <div className="pt-3 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800/80">
+            {onSimulateAccept && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onSimulateAccept(createdToken);
+                  handleResetAndClose();
+                }}
+              >
+                <UserCheck className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+                Simulate Colleague Accepting Invite
+              </Button>
+            )}
+            <Button variant="primary" size="sm" onClick={handleResetAndClose}>
               Done
             </Button>
           </div>
