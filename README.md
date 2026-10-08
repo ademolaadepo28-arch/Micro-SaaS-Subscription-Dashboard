@@ -202,6 +202,109 @@ This application is fully containerized for deployment on [Fly.io](https://fly.i
 
 ---
 
-## 7. License
+## 7. Deployment to AppDeploy (Full-Stack Docker Container with Embedded SQLite / Postgres)
+
+The application provides first-class support for **AppDeploy** using a self-contained, multi-stage Docker container backed by a dedicated persistent volume (`/data`) for embedded PostgreSQL or SQLite.
+
+### Architecture Highlights
+- **AppDeploy Specification**: Pre-configured [`appdeploy.yaml`](file:///home/medula07/Documents/GitHub/Micro-SaaS-Subscription-Dashboard/appdeploy.yaml) declaring container runtime, compute sizing, persistent storage, and health probes.
+- **Embedded Database Engine**:
+  - **PostgreSQL 16**: Initializes automatically in `/data/postgres` if `DB_TYPE=postgres` (default). Runs local daemon on port `5432` with auto-migration via Prisma.
+  - **SQLite 3**: Writes directly to `/data/sqlite/microsaas.db` if `DB_TYPE=sqlite`.
+- **Persistent Volume**: State is stored in a dedicated persistent volume mounted at `/data`, preserving databases, schemas, and metrics across container redeploys.
+- **Automated Health Monitoring**: Built-in `/api/health` endpoint monitored by AppDeploy every 30s.
+- **Graceful Shutdown**: Signal handling traps `SIGTERM`/`SIGINT` to safely flush PostgreSQL write-ahead logs (WAL) and drain in-flight Next.js requests.
+
+### Configuration Manifest (`appdeploy.yaml`)
+
+The deployment is managed by [`appdeploy.yaml`](file:///home/medula07/Documents/GitHub/Micro-SaaS-Subscription-Dashboard/appdeploy.yaml):
+
+```yaml
+version: "1.0"
+name: microsaas-subscription-dashboard
+service:
+  type: web
+  runtime: docker
+
+build:
+  dockerfile: Dockerfile
+  context: .
+
+compute:
+  tier: standard-1x
+  cpu: "1.0"
+  memory: "1024Mi"
+  instances:
+    min: 1
+    max: 1 # Single replica preserves embedded database state and volume consistency
+
+routing:
+  port: 3000
+  healthcheck:
+    path: /api/health
+    interval: 30s
+    timeout: 5s
+
+storage:
+  volumes:
+    - name: microsaas_volume
+      mount_path: /data
+      size: 5Gi
+      type: persistent
+```
+
+### Quick Deploy Steps
+
+1. **Verify or Configure AppDeploy CLI / Project**:
+   ```bash
+   # Login and link repository
+   appdeploy login
+   appdeploy link
+   ```
+
+2. **Provision Persistent Volume**:
+   Provision the persistent data volume before launching:
+   ```bash
+   appdeploy volume create microsaas_volume --size 5Gi --mount /data
+   ```
+
+3. **Configure Secrets in AppDeploy**:
+   Set required production environment secrets:
+   ```bash
+   appdeploy secrets set \
+     NEXTAUTH_SECRET="your-32-char-random-secret" \
+     NEXTAUTH_URL="https://your-app-domain.appdeploy.ai" \
+     STRIPE_SECRET_KEY="sk_live_..." \
+     STRIPE_PUBLISHABLE_KEY="pk_live_..." \
+     STRIPE_WEBHOOK_SECRET="whsec_..." \
+     STRIPE_PRO_PRICE_ID="price_..." \
+     STRIPE_TEAM_PRICE_ID="price_..."
+   ```
+
+4. **Deploy**:
+   ```bash
+   # Deploy container image using appdeploy.yaml
+   appdeploy deploy
+   ```
+
+5. **Verify Health and View Logs**:
+   ```bash
+   appdeploy logs --follow
+   appdeploy status
+   ```
+
+6. **Switch Database Mode (Optional)**:
+   - For **Embedded PostgreSQL** (recommended for production multi-tenant concurrency):
+     ```bash
+     appdeploy env set DB_TYPE="postgres"
+     ```
+   - For **Embedded SQLite** (minimal footprint, single-file database):
+     ```bash
+     appdeploy env set DB_TYPE="sqlite"
+     ```
+
+---
+
+## 8. License
 MIT License
 

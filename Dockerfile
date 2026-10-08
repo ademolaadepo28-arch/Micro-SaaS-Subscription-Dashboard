@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
 # ==============================================================================
-# Micro-SaaS Subscription Dashboard - Full-Stack Fly.io Container
-# Multi-stage build with Embedded PostgreSQL / SQLite support
+# Micro-SaaS Subscription Dashboard - Full-Stack Production Container
+# Multi-stage build with Embedded PostgreSQL / SQLite support for AppDeploy & Fly
 # ==============================================================================
 
 # Stage 1: Dependencies
@@ -32,10 +32,11 @@ RUN npm run build
 FROM node:22-alpine AS runner
 WORKDIR /app
 
-# Install PostgreSQL, su-exec process switcher, bash, and curl
+# Install PostgreSQL, SQLite3, su-exec process switcher, bash, and curl
 RUN apk add --no-cache \
     postgresql \
     postgresql-contrib \
+    sqlite \
     su-exec \
     bash \
     curl
@@ -45,7 +46,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Setup persistent volume mount points for Fly.io
+# Setup persistent volume mount points
 RUN mkdir -p /data/postgres /data/sqlite /run/postgresql && \
     chown -R postgres:postgres /run/postgresql /data
 
@@ -61,10 +62,15 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 
-# Expose HTTP port for Fly.io proxy
+# Expose HTTP port
 EXPOSE 3000
 
-# Fly.io Volume Mount Target
+# Persistent Volume Mount Target
 VOLUME ["/data"]
 
+# Automated Container Healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
+  CMD curl -f http://127.0.0.1:3000/api/health || exit 1
+
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
+

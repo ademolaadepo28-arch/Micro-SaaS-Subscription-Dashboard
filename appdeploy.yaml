@@ -1,0 +1,82 @@
+# ==============================================================================
+# AppDeploy Specification: Micro-SaaS Subscription Dashboard
+# Architecture: Full-Stack Docker Container with Embedded PostgreSQL / SQLite
+# ==============================================================================
+
+version: "1.0"
+name: microsaas-subscription-dashboard
+description: "Multi-tenant B2B subscription and metered usage dashboard with embedded database storage"
+
+service:
+  type: web
+  runtime: docker
+
+build:
+  dockerfile: Dockerfile
+  context: .
+  args:
+    NODE_ENV: production
+    NEXT_TELEMETRY_DISABLED: "1"
+
+compute:
+  tier: standard-1x
+  cpu: "1.0"
+  memory: "1024Mi"
+  instances:
+    min: 1
+    max: 1 # Single replica preserves embedded database state and volume consistency
+
+routing:
+  port: 3000
+  protocol: http
+  healthcheck:
+    path: /api/health
+    interval: 30s
+    timeout: 5s
+    healthy_threshold: 2
+    unhealthy_threshold: 3
+    grace_period: 30s
+
+storage:
+  volumes:
+    - name: microsaas_volume
+      mount_path: /data
+      size: 5Gi
+      type: persistent
+      access_mode: ReadWriteOnce
+
+env:
+  NODE_ENV: "production"
+  PORT: "3000"
+  HOSTNAME: "0.0.0.0"
+  NEXT_TELEMETRY_DISABLED: "1"
+  # Database Mode: "postgres" (embedded PostgreSQL 16) or "sqlite" (embedded SQLite 3)
+  DB_TYPE: "postgres"
+  DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/microsaas?schema=public"
+
+secrets:
+  # NextAuth session & token signing
+  - name: NEXTAUTH_SECRET
+    description: "Cryptographically secure 32+ char secret for JWT authentication"
+  - name: NEXTAUTH_URL
+    description: "Public canonical domain of the deployed application"
+
+  # Stripe Subscription & Webhooks
+  - name: STRIPE_SECRET_KEY
+    description: "Stripe API Secret Key (sk_live_... or sk_test_...)"
+  - name: STRIPE_PUBLISHABLE_KEY
+    description: "Stripe API Publishable Key (pk_live_... or pk_test_...)"
+  - name: STRIPE_WEBHOOK_SECRET
+    description: "Stripe Webhook Signing Secret (whsec_...)"
+  - name: STRIPE_PRO_PRICE_ID
+    description: "Stripe Price ID for Pro Plan ($29/mo)"
+  - name: STRIPE_TEAM_PRICE_ID
+    description: "Stripe Price ID for Team Plan ($99/mo)"
+
+  # Redis Rate Limiting & Metered Telemetry Cache (Optional fallback to in-memory)
+  - name: UPSTASH_REDIS_REST_URL
+    description: "Upstash Redis REST endpoint URL"
+    optional: true
+  - name: UPSTASH_REDIS_REST_TOKEN
+    description: "Upstash Redis REST bearer token"
+    optional: true

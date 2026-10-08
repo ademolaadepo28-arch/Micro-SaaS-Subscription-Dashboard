@@ -2,12 +2,14 @@
 set -e
 
 # ==============================================================================
-# Micro-SaaS Subscription Dashboard - Fly.io Container Entrypoint
+# Micro-SaaS Subscription Dashboard - Full-Stack Container Entrypoint
 # Supports Embedded PostgreSQL, Embedded SQLite, and External Databases
+# Compatible with AppDeploy, Fly.io, and Docker Orchestrators
 # ==============================================================================
 
 echo "=========================================================="
-echo " Starting Micro-SaaS Full-Stack Container on Fly.io"
+echo " Starting Micro-SaaS Full-Stack Container"
+echo " Target Environment: AppDeploy / Fly.io / Container Runtime"
 echo "=========================================================="
 
 # Ensure directories and permissions for persistent volume
