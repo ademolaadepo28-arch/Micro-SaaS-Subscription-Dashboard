@@ -20,7 +20,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client (supports both PostgreSQL and SQLite models)
+# Generate Prisma Client (build-time dummy url for client generation)
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/microsaas?schema=public"
 RUN npx prisma generate
 
 # Build Next.js in Standalone Mode
